@@ -1,4 +1,4 @@
-name: CodeNetra-AI 
+name: my_app
 description: "CodeNetra-AI: An accessibility Super-App powering vision-to-voice assistance using Google Gemini 3 Flash"
 publish_to: 'none'
 version: 1.0.0+1
