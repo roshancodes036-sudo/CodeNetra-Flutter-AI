@@ -51,7 +51,7 @@ dev_dependencies:
 # Icon Configuration (FIXED for Android Only) 👇
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: false             # <-- इसे false कर दिया है ताकि एरर न आए
+  ios: false             
   image_path: "assets/icon.png"
   min_sdk_android: 21
 
