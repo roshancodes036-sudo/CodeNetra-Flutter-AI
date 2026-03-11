@@ -27,7 +27,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
   Timer? _timer; // Auto-pilot timer
 
   // ✅ NEW: Language State
-  bool _isHindi = false; 
+  bool _isHindi = false;
 
   @override
   void initState() {
@@ -50,7 +50,9 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
     setState(() {
       _isHindi = !_isHindi;
       AIBrain.isHindi = _isHindi; // Update global AI brain state
-      _desc = _isHindi ? "नेत्रा विजन शुरू हो रहा है..." : "Initializing Netra Vision...";
+      _desc = _isHindi
+          ? "नेत्रा विजन शुरू हो रहा है..."
+          : "Initializing Netra Vision...";
     });
     _setupVoice(); // Aawaz badlo
     HapticFeedback.lightImpact(); // Button dabane par chota vibration
@@ -86,7 +88,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
     try {
       setState(() => _isProcessing = true); // Loading shuru
       final image = await _controller!.takePicture(); // Photo khincho
-      
+
       // --- SUPER INTELLIGENT PROMPT (✅ Hindi/English Support Added) ---
       String prompt = """
       You are 'Netra', an advanced vision assistant for the blind. 
@@ -115,10 +117,10 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       if (mounted && res != null) {
         // --- DANGER VIBRATION LOGIC (✅ Hindi Support Added) ---
         String upperRes = res.toUpperCase();
-        if (upperRes.contains("STOP") || 
-            upperRes.contains("DANGER") || 
+        if (upperRes.contains("STOP") ||
+            upperRes.contains("DANGER") ||
             upperRes.contains("WARNING") ||
-            res.contains("खतरा") || 
+            res.contains("खतरा") ||
             res.contains("सावधान")) {
           HapticFeedback.heavyImpact(); // Zordaar jhatka 1
           await Future.delayed(const Duration(milliseconds: 200));
@@ -129,7 +131,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
           _desc = res;
           _isProcessing = false; // Loading band
         });
-        
+
         // User ko bolkar batao
         await _tts.speak(res);
       }
@@ -165,7 +167,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                 height: double.infinity,
                 width: double.infinity,
                 child: CameraPreview(_controller!)),
-            
+
             // 2. BLACK OVERLAY (Niche ka design)
             Positioned(
                 bottom: 0,
@@ -185,7 +187,6 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                               spreadRadius: 5)
                         ]),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      
                       // AI TEXT OUTPUT
                       Text(_desc,
                           textAlign: TextAlign.center,
@@ -199,33 +200,42 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                               fontSize: 18,
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 20),
-                      
+
                       // NETRA EYE ANIMATION (Orb)
                       Container(
                           height: 80, // ✅ Correct Size: 80
-                          width: 80,  // ✅ Correct Size: 80
+                          width: 80, // ✅ Correct Size: 80
                           decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.black,
                               border: Border.all(
-                                // ✅ Hindi danger border support added
-                                color: _desc.toUpperCase().contains("DANGER") || _desc.contains("खतरा")
-                                  ? Colors.red // Khatre me border LAL ho jayega
-                                  : AppColors.primaryAccent,
-                                width: 2
-                              ),
+                                  // ✅ Hindi danger border support added
+                                  color: _desc
+                                              .toUpperCase()
+                                              .contains("DANGER") ||
+                                          _desc.contains("खतरा")
+                                      ? Colors
+                                          .red // Khatre me border LAL ho jayega
+                                      : AppColors.primaryAccent,
+                                  width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                    color: _desc.toUpperCase().contains("DANGER") || _desc.contains("खतरा")
+                                    color: _desc
+                                                .toUpperCase()
+                                                .contains("DANGER") ||
+                                            _desc.contains("खतरा")
                                         ? Colors.red.withOpacity(0.8)
                                         : (_isProcessing
-                                            ? Colors.purpleAccent.withOpacity(0.6)
-                                            : AppColors.primaryAccent.withOpacity(0.4)),
+                                            ? Colors.purpleAccent
+                                                .withOpacity(0.6)
+                                            : AppColors.primaryAccent
+                                                .withOpacity(0.4)),
                                     blurRadius: 30,
                                     spreadRadius: 5)
                               ]),
                           child: ClipOval(
-                              child: Stack(alignment: Alignment.center, children: [
+                              child:
+                                  Stack(alignment: Alignment.center, children: [
                             // Tumhara GIF yahan hai
                             Image.asset("assets/orb.gif",
                                 fit: BoxFit.cover, height: 80, width: 80),
@@ -235,12 +245,20 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                                   color: Colors.white, strokeWidth: 2)
                           ]))),
                       const SizedBox(height: 10),
-                      
+
                       // STATUS TEXT
-                      Text(_isProcessing ? (_isHindi ? "स्कैन कर रहा है..." : "Scanning...") : (_isHindi ? "ऑटो-पायलट सक्रिय" : "Auto-Pilot Active"),
-                          style: const TextStyle(color: Colors.white54, fontSize: 12))
+                      Text(
+                          _isProcessing
+                              ? (_isHindi
+                                  ? "स्कैन कर रहा है..."
+                                  : "Scanning...")
+                              : (_isHindi
+                                  ? "ऑटो-पायलट सक्रिय"
+                                  : "Auto-Pilot Active"),
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12))
                     ]))),
-            
+
             // 3. BACK BUTTON (Upar Left)
             Positioned(
                 top: 40,
@@ -251,25 +269,40 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () => Navigator.pop(context)))),
 
-            // ✅ 4. NEW: LANGUAGE TOGGLE BUTTON (Upar Right)
+            // ✅ 4. FIX: LANGUAGE TOGGLE BUTTON (Top Bar ke niche aur clear design)
             Positioned(
-                top: 40,
-                right: 10,
+              top:
+                  90, // 👈 इसे 40 से 90 कर दिया है ताकि यह Top Bar के नीचे आ जाए
+              right: 20, // 👈 किनारे से थोड़ा अंदर किया है
+              child: SafeArea(
                 child: GestureDetector(
                   onTap: _toggleLanguage,
-                  child: CircleAvatar(
-                    backgroundColor: _isHindi ? AppColors.primaryAccent : Colors.black54,
-                    radius: 24,
+                  child: Container(
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isHindi
+                            ? Colors.cyanAccent
+                            : Colors.white.withOpacity(0.8), // 👈 चमकदार रंग
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          )
+                        ]),
+                    padding: const EdgeInsets.all(12),
                     child: Text(
                       _isHindi ? "हिं" : "EN",
                       style: GoogleFonts.outfit(
-                        color: Colors.white, 
-                        fontWeight: FontWeight.bold, 
-                        fontSize: 16
-                      ),
+                          color: Colors
+                              .black, // 👈 चमकदार बैकग्राउंड पर काला टेक्स्ट साफ़ दिखेगा
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
                     ),
                   ),
-                )),
+                ),
+              ),
+            ),
           ]);
         } else {
           return const Center(
