@@ -26,20 +26,34 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
   String _desc = "Initializing Netra Vision..."; // Screen par dikhne wala text
   Timer? _timer; // Auto-pilot timer
 
+  // ✅ NEW: Language State
+  bool _isHindi = false; 
+
   @override
   void initState() {
     super.initState();
     _brain.initBrain();
-    _setupVoice(); // English Voice set karega
+    _setupVoice(); // Default Voice set karega
     _initCamera(); // Camera chalu karega
   }
 
-  // 1. ENGLISH VOICE SETUP
+  // 1. VOICE SETUP (✅ Hindi/English Support Added)
   Future<void> _setupVoice() async {
-    await _tts.setLanguage("en-US"); // English (United States)
+    await _tts.setLanguage(_isHindi ? "hi-IN" : "en-US"); // Language Toggle
     await _tts.setPitch(1.0); // Normal Pitch
     await _tts.setSpeechRate(0.5); // Speed thodi dheemi taki saaf samajh aaye
     await _tts.awaitSpeakCompletion(true); // Pura bolne ke baad hi agla bole
+  }
+
+  // ✅ NEW: Language Toggle Function
+  void _toggleLanguage() {
+    setState(() {
+      _isHindi = !_isHindi;
+      AIBrain.isHindi = _isHindi; // Update global AI brain state
+      _desc = _isHindi ? "नेत्रा विजन शुरू हो रहा है..." : "Initializing Netra Vision...";
+    });
+    _setupVoice(); // Aawaz badlo
+    HapticFeedback.lightImpact(); // Button dabane par chota vibration
   }
 
   // 2. CAMERA SETUP
@@ -73,36 +87,39 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       setState(() => _isProcessing = true); // Loading shuru
       final image = await _controller!.takePicture(); // Photo khincho
       
-      // --- SUPER INTELLIGENT PROMPT ---
+      // --- SUPER INTELLIGENT PROMPT (✅ Hindi/English Support Added) ---
       String prompt = """
       You are 'Netra', an advanced vision assistant for the blind. 
       Analyze the image strictly based on visual evidence.
+      IMPORTANT: Reply strictly in ${_isHindi ? "HINDI" : "ENGLISH"} language.
 
       PRIORITY RULES:
-      1. **DANGER (Safety First):** If you see an approaching Car, Bike, Fire, Deep Pit, or Edge, output MUST start with "STOP DANGER".
+      1. **DANGER (Safety First):** If you see an approaching Car, Bike, Fire, Deep Pit, or Edge, output MUST start with "STOP DANGER" (or "खतरा" in Hindi).
       
       2. **MEDICINE (Health):** If you see a Medicine Strip or Bottle:
          - Read the Name (e.g., Dolo 650, Vicks).
-         - Explain usage briefly (e.g., "For fever", "For cold").
+         - Explain usage briefly.
          - If text is unreadable, say "Medicine name unclear".
 
       3. **HARDWARE (Tech):** If you see a computer part (RAM, Mouse, Arduino, Keyboard):
-         - Name it and its function (e.g., "Arduino Uno, for robotics").
+         - Name it and its function.
 
       4. **GENERAL:** If none of above, describe the object in front in 5-10 words.
 
-      OUTPUT FORMAT: Plain English text only. Max 15 words.
+      OUTPUT FORMAT: Plain ${_isHindi ? "Hindi" : "English"} text only. Max 15 words.
       """;
 
       // AI ko bhejo (Gemini API)
       String? res = await _brain.askWithImage(prompt, File(image.path));
 
       if (mounted && res != null) {
-        // --- DANGER VIBRATION LOGIC ---
-        // Agar jawab me Danger ya Stop hai, to phone vibrate karega
-        if (res.toUpperCase().contains("STOP") || 
-            res.toUpperCase().contains("DANGER") || 
-            res.toUpperCase().contains("WARNING")) {
+        // --- DANGER VIBRATION LOGIC (✅ Hindi Support Added) ---
+        String upperRes = res.toUpperCase();
+        if (upperRes.contains("STOP") || 
+            upperRes.contains("DANGER") || 
+            upperRes.contains("WARNING") ||
+            res.contains("खतरा") || 
+            res.contains("सावधान")) {
           HapticFeedback.heavyImpact(); // Zordaar jhatka 1
           await Future.delayed(const Duration(milliseconds: 200));
           HapticFeedback.heavyImpact(); // Zordaar jhatka 2
@@ -118,7 +135,7 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
       }
     } catch (e) {
       debugPrint("Error in Vision: $e");
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -173,9 +190,10 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                       Text(_desc,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
-                              // Agar khatra hai to LAL rang, varna SAFED
+                              // ✅ Hindi danger color support added
                               color: _desc.toUpperCase().contains("DANGER") ||
-                                      _desc.toUpperCase().contains("STOP")
+                                      _desc.toUpperCase().contains("STOP") ||
+                                      _desc.contains("खतरा")
                                   ? Colors.redAccent
                                   : Colors.white,
                               fontSize: 18,
@@ -190,14 +208,15 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                               shape: BoxShape.circle,
                               color: Colors.black,
                               border: Border.all(
-                                color: _desc.toUpperCase().contains("DANGER")
+                                // ✅ Hindi danger border support added
+                                color: _desc.toUpperCase().contains("DANGER") || _desc.contains("खतरा")
                                   ? Colors.red // Khatre me border LAL ho jayega
                                   : AppColors.primaryAccent,
                                 width: 2
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                    color: _desc.toUpperCase().contains("DANGER")
+                                    color: _desc.toUpperCase().contains("DANGER") || _desc.contains("खतरा")
                                         ? Colors.red.withOpacity(0.8)
                                         : (_isProcessing
                                             ? Colors.purpleAccent.withOpacity(0.6)
@@ -218,11 +237,11 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                       const SizedBox(height: 10),
                       
                       // STATUS TEXT
-                      Text(_isProcessing ? "Scanning..." : "Auto-Pilot Active",
+                      Text(_isProcessing ? (_isHindi ? "स्कैन कर रहा है..." : "Scanning...") : (_isHindi ? "ऑटो-पायलट सक्रिय" : "Auto-Pilot Active"),
                           style: const TextStyle(color: Colors.white54, fontSize: 12))
                     ]))),
             
-            // 3. BACK BUTTON (Upar)
+            // 3. BACK BUTTON (Upar Left)
             Positioned(
                 top: 40,
                 left: 10,
@@ -230,7 +249,27 @@ class _LiveCameraScreenState extends State<LiveCameraScreen> {
                     backgroundColor: Colors.black54,
                     child: IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context))))
+                        onPressed: () => Navigator.pop(context)))),
+
+            // ✅ 4. NEW: LANGUAGE TOGGLE BUTTON (Upar Right)
+            Positioned(
+                top: 40,
+                right: 10,
+                child: GestureDetector(
+                  onTap: _toggleLanguage,
+                  child: CircleAvatar(
+                    backgroundColor: _isHindi ? AppColors.primaryAccent : Colors.black54,
+                    radius: 24,
+                    child: Text(
+                      _isHindi ? "हिं" : "EN",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 16
+                      ),
+                    ),
+                  ),
+                )),
           ]);
         } else {
           return const Center(

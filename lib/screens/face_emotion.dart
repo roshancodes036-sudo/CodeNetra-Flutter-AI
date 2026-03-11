@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // HapticFeedback ke liye
 import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,7 +20,7 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
     with SingleTickerProviderStateMixin {
   CameraController? _controller;
   List<CameraDescription>? _cameras;
-  int _selectedCameraIdx = 0; // 0 = Back, 1 = Front (Default Back)
+  int _selectedCameraIdx = 0; // Default Back Camera
   
   final AIBrain _brain = AIBrain();
   final FlutterTts _tts = FlutterTts();
@@ -27,6 +28,9 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
   bool _isProcessing = false;
   String _result = "Initializing Social Coach...";
   Timer? _timer;
+
+  // ✅ NEW: Language State
+  bool _isHindi = false; 
 
   // Animation Variables
   late AnimationController _animController;
@@ -49,17 +53,28 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_animController);
   }
 
+  // ✅ NEW: Smart Voice Setup
   Future<void> _setupVoice() async {
-    await _tts.setLanguage("en-US");
-    await _tts.setSpeechRate(0.5);
+    await _tts.setLanguage(_isHindi ? "hi-IN" : "en-US");
+    await _tts.setSpeechRate(0.5); // Clear instruction speed
     await _tts.setPitch(1.0);
+    await _tts.awaitSpeakCompletion(true);
+  }
+
+  // ✅ NEW: Language Toggle
+  void _toggleLanguage() {
+    setState(() {
+      _isHindi = !_isHindi;
+      AIBrain.isHindi = _isHindi; 
+      _result = _isHindi ? "सोशल कोच तैयार है..." : "Social Coach Active...";
+    });
+    _setupVoice();
+    HapticFeedback.lightImpact();
   }
 
   Future<void> _initCamera() async {
     _cameras = await availableCameras();
-    // Default to Front Camera for Face/Emotion if available, else Back
     if (_cameras != null && _cameras!.isNotEmpty) {
-      // Find front camera index
       int frontIndex = _cameras!.indexWhere((c) => c.lensDirection == CameraLensDirection.front);
       _selectedCameraIdx = (frontIndex != -1) ? frontIndex : 0;
       _setCamera(_cameras![_selectedCameraIdx]);
@@ -70,6 +85,7 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
     if (_controller != null) {
       await _controller!.dispose();
     }
+    // Resolution 'medium' rakha hai taki 1.5s me fast upload ho
     _controller = CameraController(
       cameraDescription, 
       ResolutionPreset.medium, 
@@ -90,16 +106,16 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
   void _switchCamera() {
     if (_cameras == null || _cameras!.length < 2) return;
     setState(() {
-      // Toggle Index: 0 -> 1, 1 -> 0
       _selectedCameraIdx = (_selectedCameraIdx == 0) ? 1 : 0;
-      _result = "Switching Camera...";
+      _result = _isHindi ? "कैमरा बदल रहा है..." : "Switching Camera...";
     });
     _setCamera(_cameras![_selectedCameraIdx]);
   }
 
+  // ✅ FASTER AUTO-PILOT (1.5 Seconds)
   void _startAutoPilot() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
       if (!_isProcessing && mounted && _controller!.value.isInitialized) {
         _scanFaceAndEmotion();
       }
@@ -111,25 +127,33 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
       setState(() => _isProcessing = true);
       final image = await _controller!.takePicture();
 
+      // 🔥 THE STRICT "SOCIAL COACH" PROMPT 🔥
       String prompt = """
       You are 'Netra', a Social Intelligence Coach for a blind person.
-      Analyze the face in the image INSTANTLY.
+      Analyze the face in the image INSTANTLY. Identify the exact emotion or social cue.
       
-      OUTPUT FORMAT:
-      [Emotion]: [Social Advice]
+      INSTRUCTIONS:
+      1. Give a DIRECT, REAL-WORLD conversational tip to the blind user.
+      2. Language: Reply STRICTLY in ${_isHindi ? "HINDI" : "ENGLISH"}.
       
-      RULES:
-      1. If ANGRY/UPSET: Say "He looks upset. Speak softly."
-      2. If HAPPY/SMILING: Say "She looks happy. You can match her energy."
-      3. If SERIOUS/FOCUSED: Say "He looks serious. Be professional."
-      4. If NO FACE: Say "No face detected."
+      EXAMPLES:
+      - "He looks stressed. Keep your tone calm." / "वह तनाव में है, शांत स्वर में बात करें।"
+      - "She is smiling warmly. You can match her energy." / "वह मुस्कुरा रही है, आप भी गर्मजोशी दिखाएं।"
+      - "He looks bored or distracted. Try changing the topic." / "वह बोर लग रहा है, विषय बदलें।"
+      - "No face detected." / "कोई चेहरा नहीं दिखा।"
       
-      Keep it under 15 words. Speak in English.
+      OUTPUT FORMAT: Plain ${_isHindi ? "Hindi" : "English"} text. STRICTLY UNDER 12 WORDS. No extra symbols.
       """;
 
       String? res = await _brain.askWithImage(prompt, File(image.path));
 
       if (mounted && res != null) {
+        // Haptic feedback if someone is angry/aggressive
+        String upperRes = res.toUpperCase();
+        if (upperRes.contains("ANGRY") || upperRes.contains("STRESSED") || upperRes.contains("गुस्से") || upperRes.contains("तनाव")) {
+          HapticFeedback.mediumImpact();
+        }
+
         setState(() {
           _result = res;
           _isProcessing = false;
@@ -137,7 +161,7 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
         await _tts.speak(res);
       }
     } catch (e) {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -225,7 +249,7 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
                     const LinearProgressIndicator(color: AppColors.primaryAccent),
                   if (!_isProcessing)
                     Text(
-                      "Social Coach Active • Scanning...",
+                      _isHindi ? "सोशल कोच सक्रिय • स्कैन कर रहा है..." : "Social Coach Active • Scanning...",
                       style: GoogleFonts.outfit(color: Colors.greenAccent, fontSize: 12),
                     )
                 ],
@@ -233,13 +257,13 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
             ),
           ),
 
-          // 4. FLOATING CAMERA SWITCH BUTTON (Bottom Right - iPhone Style)
+          // 4. FLOATING CAMERA SWITCH BUTTON (Bottom Right)
           Positioned(
-            bottom: 160, // Text box ke thoda upar
+            bottom: 160, 
             right: 20,
             child: FloatingActionButton(
               heroTag: "switch_cam",
-              backgroundColor: Colors.black.withOpacity(0.6), // Translucent Black
+              backgroundColor: Colors.black.withOpacity(0.6), 
               onPressed: _switchCamera,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(50),
@@ -249,9 +273,9 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
             ),
           ),
 
-          // 5. BACK BUTTON (Top Left - Safe Area Fixed)
+          // 5. BACK BUTTON (Top Left)
           Positioned(
-            top: 50, // Thoda aur niche kiya taki status bar se bache
+            top: 50, 
             left: 20,
             child: SafeArea(
               child: CircleAvatar(
@@ -260,6 +284,29 @@ class _FaceEmotionScreenState extends State<FaceEmotionScreen>
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+
+          // ✅ 6. NEW: LANGUAGE TOGGLE BUTTON (Top Right)
+          Positioned(
+            top: 50,
+            right: 20,
+            child: SafeArea(
+              child: GestureDetector(
+                onTap: _toggleLanguage,
+                child: CircleAvatar(
+                  backgroundColor: _isHindi ? Colors.greenAccent.withOpacity(0.8) : Colors.black45,
+                  radius: 22,
+                  child: Text(
+                    _isHindi ? "हिं" : "EN",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white, 
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16
+                    ),
+                  ),
                 ),
               ),
             ),
