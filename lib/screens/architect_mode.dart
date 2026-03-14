@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // ✅ NEW: Markdown Package
 
 import '../theme/app_colors.dart';
 import '../widgets/custom_widgets.dart';
@@ -34,27 +35,29 @@ class _ArchitectScreenState extends State<ArchitectScreen> {
     });
 
     String prompt = """
-    ACT AS A SENIOR SOFTWARE ARCHITECT (CTO Level).
-    User wants to build: "${_ctrl.text}".
-    
-    Create a complete SYSTEM DESIGN BLUEPRINT.
-    OUTPUT FORMAT (Use Markdown):
-    ## 🛠️ 1. Recommended Tech Stack
-    - Frontend: (e.g. Flutter)
-    - Backend: (e.g. Serverpod / Node.js)
-    - Database: (e.g. PostgreSQL / Firebase)
-    
-    ## 🗄️ 2. Database Schema (Tables & Fields)
-    - **Users**: id, name, email...
-    
-    ## 🔌 3. Key API Endpoints
-    - `POST /auth/login`
-    
-    ## 🚀 4. Development Steps (MVP)
-    1. Setup project...
-    """;
+ACT AS A SENIOR SOFTWARE ARCHITECT (CTO Level).
+User wants to build: "${_ctrl.text}".
+Create a complete SYSTEM DESIGN BLUEPRINT.
+
+OUTPUT FORMAT (Use Markdown):
+## 🛠️ 1. Recommended Tech Stack
+- Frontend: (e.g. Flutter)
+- Backend: (e.g. Serverpod / Node.js)
+- Database: (e.g. PostgreSQL / Firebase)
+
+## 🗄️ 2. Database Schema (Tables & Fields)
+- **Users**: id, name, email...
+
+## 🔌 3. Key API Endpoints
+- `POST /auth/login`
+
+## 🚀 4. Development Steps (MVP)
+1. Setup project...
+""";
 
     String? res = await _brain.askLaravel(prompt);
+    
+    if (!mounted) return; // ✅ Safety check added to prevent crashes
 
     setState(() {
       _isLoading = false;
@@ -75,33 +78,37 @@ class _ArchitectScreenState extends State<ArchitectScreen> {
                 color: AppColors.cardSurface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.borderSubtle)),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("What do you want to build?",
-                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14)),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                    child: TextField(
-                        controller: _ctrl,
-                        style: GoogleFonts.outfit(
-                            color: Colors.white, fontSize: 18),
-                        decoration: const InputDecoration(
-                            hintText: "e.g. Airbnb Clone, Crypto Wallet...",
-                            hintStyle: TextStyle(color: Colors.white24),
-                            border: InputBorder.none))),
-                IconButton(
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColors.primaryAccent))
-                        : const Icon(Icons.send_rounded,
-                            color: AppColors.primaryAccent, size: 30),
-                    onPressed: _isLoading ? null : _generateBlueprint)
-              ])
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("What do you want to build?",
+                    style:
+                        GoogleFonts.outfit(color: Colors.grey, fontSize: 14)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                      child: TextField(
+                          controller: _ctrl,
+                          style: GoogleFonts.outfit(
+                              color: Colors.white, fontSize: 18),
+                          decoration: const InputDecoration(
+                              hintText: "e.g. Airbnb Clone, Crypto Wallet...",
+                              hintStyle: TextStyle(color: Colors.white24),
+                              border: InputBorder.none))),
+                  IconButton(
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primaryAccent))
+                          : const Icon(Icons.send_rounded,
+                              color: AppColors.primaryAccent, size: 30),
+                      onPressed: _isLoading ? null : _generateBlueprint)
+                ])
+              ],
+            ),
           ),
           const SizedBox(height: 20),
           if (_blueprint.isEmpty)
@@ -172,11 +179,43 @@ class _ArchitectScreenState extends State<ArchitectScreen> {
                       Expanded(
                           child: SingleChildScrollView(
                               padding: const EdgeInsets.all(16),
-                              child: SelectableText(_blueprint,
-                                  style: GoogleFonts.firaCode(
-                                      color: Colors.white.withAlpha(230),
-                                      fontSize: 14,
-                                      height: 1.6))))
+                              // ✅ CHANGED: SelectableText to Premium MarkdownBody
+                              child: MarkdownBody(
+                                data: _blueprint,
+                                selectable: true, // Judges can still copy text!
+                                styleSheet: MarkdownStyleSheet(
+                                  p: GoogleFonts.outfit(
+                                      color: Colors.white70,
+                                      fontSize: 15,
+                                      height: 1.5),
+                                  h1: GoogleFonts.outfit(
+                                      color: Colors.cyanAccent,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold),
+                                  h2: GoogleFonts.outfit(
+                                      color: Colors.cyanAccent,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                  h3: GoogleFonts.outfit(
+                                      color: Colors.cyanAccent,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                  strong: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                  listBullet: const TextStyle(
+                                      color: Colors.cyanAccent, fontSize: 18),
+                                  code: GoogleFonts.firaCode(
+                                      color: Colors.greenAccent,
+                                      backgroundColor: Colors.transparent),
+                                  codeblockDecoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: AppColors.borderSubtle),
+                                  ),
+                                ),
+                              )))
                     ])))
         ],
       ),

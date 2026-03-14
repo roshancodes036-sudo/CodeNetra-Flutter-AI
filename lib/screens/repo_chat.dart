@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // ✅ NEW: Markdown Package
 
 import '../theme/app_colors.dart';
 import '../widgets/custom_widgets.dart';
@@ -96,11 +97,11 @@ class _RepoChatScreenState extends State<RepoChatScreen>
       _criticalContext = criticalBuffer.toString();
       _isContextLoaded = true;
       String summaryPrompt = """
-      ACT AS A SENIOR DEVELOPER. I have uploaded a project ZIP.
-      STATS: - Total Files Scanned: $totalFiles - Key Files Content Provided Below: $_criticalContext
-      TASK: 1. Identify the Tech Stack (Flutter/React/Python). 2. Analyze the 'pubspec.yaml' or dependency file to list Key Features. 3. Tell me the folder structure briefly.
-      Reply in short bullet points. Start with "🚀 Project Loaded Successfully!".
-      """;
+ACT AS A SENIOR DEVELOPER. I have uploaded a project ZIP.
+STATS: - Total Files Scanned: $totalFiles - Key Files Content Provided Below: $_criticalContext
+TASK: 1. Identify the Tech Stack (Flutter/React/Python). 2. Analyze the 'pubspec.yaml' or dependency file to list Key Features. 3. Tell me the folder structure briefly.
+Reply in short bullet points. Start with "🚀 Project Loaded Successfully!".
+""";
       String? res = await _brain.askLaravel(summaryPrompt);
       setState(() => _isLoading = false);
       _addMessage("ai", res ?? "Project Loaded. Ready to answer questions!");
@@ -194,16 +195,72 @@ class _RepoChatScreenState extends State<RepoChatScreen>
                         fontSize: 14))
               ])),
         Expanded(
-            child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _msgs.length,
-                itemBuilder: (c, i) => ModernChatBubble(
-                    isUser: _msgs[i]['role'] == 'user',
-                    text: _msgs[i]['text'],
-                    isAnimated: _msgs[i]['animated'],
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            itemCount: _msgs.length,
+            itemBuilder: (c, i) {
+              final msg = _msgs[i];
+              final isUser = msg['role'] == 'user';
+
+              // ✅ NEW: User ke liye ModernChatBubble, AI ke liye Premium Markdown
+              if (isUser) {
+                return ModernChatBubble(
+                    isUser: true,
+                    text: msg['text'],
+                    isAnimated: msg['animated'],
                     onAnimationEnd: () =>
-                        setState(() => _msgs[i]['animated'] = true)))),
+                        setState(() => _msgs[i]['animated'] = true));
+              } else {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16, right: 30),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardSurface, // Premium Dark Background
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                    border: Border.all(color: AppColors.borderSubtle),
+                  ),
+                  child: MarkdownBody(
+                    data: msg['text'],
+                    selectable: true, // ✅ जजों को कोड कॉपी करने में आसानी होगी
+                    styleSheet: MarkdownStyleSheet(
+                      p: GoogleFonts.outfit(
+                          color: Colors.white70, fontSize: 15),
+                      h1: GoogleFonts.outfit(
+                          color: Colors.cyanAccent,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold),
+                      h2: GoogleFonts.outfit(
+                          color: Colors.cyanAccent,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
+                      h3: GoogleFonts.outfit(
+                          color: Colors.cyanAccent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                      strong: GoogleFonts.outfit(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                      listBullet: const TextStyle(
+                          color: Colors.cyanAccent, fontSize: 18),
+                      code: GoogleFonts.firaCode(
+                          color: Colors.greenAccent,
+                          backgroundColor: Colors.transparent),
+                      codeblockDecoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
         if (_isLoading)
           const LinearProgressIndicator(color: AppColors.primaryAccent),
         Container(

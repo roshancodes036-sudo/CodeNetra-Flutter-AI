@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // ✅ NEW: Markdown Package
 
 import '../theme/app_colors.dart';
 import '../widgets/custom_widgets.dart';
@@ -38,7 +39,11 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
       });
       String prompt =
           "Extract the error message from this screenshot and FIX IT. Explain the root cause briefly.";
+          
       String? res = await _brain.askWithImage(prompt, _errorImage!);
+      
+      if (!mounted) return; // ✅ Safety Check Added
+
       setState(() {
         _loading = false;
         _solution = res ?? "Could not read error from image.";
@@ -63,15 +68,21 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
       _loading = true;
       _solution = "🔍 Analyzing Stack Trace & Logic...";
     });
+    
     String prompt = """
-    I have a bug. Here is the ERROR LOG:
-    ${_ctrl.text}
-    TASK:
-    1. Identify the root cause.
-    2. Provide the corrected code snippet.
-    3. Explain briefly why this happened.
-    """;
+I have a bug. Here is the ERROR LOG:
+${_ctrl.text}
+
+TASK:
+1. Identify the root cause.
+2. Provide the corrected code snippet.
+3. Explain briefly why this happened.
+""";
+
     String? res = await _brain.askLaravel(prompt);
+    
+    if (!mounted) return; // ✅ Safety Check Added
+
     setState(() {
       _loading = false;
       _solution = res ?? "Could not solve this error.";
@@ -91,8 +102,8 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
                 decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
                     borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: Colors.redAccent.withAlpha(128))),
+                    border: Border.all(
+                        color: Colors.redAccent.withAlpha(128))),
                 child: Column(children: [
                   Expanded(
                       child: TextField(
@@ -108,17 +119,19 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
                               border: InputBorder.none))),
                   Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                     Text("Scan Error:",
-                        style:
-                            TextStyle(color: Colors.grey[600], fontSize: 12)),
+                        style: TextStyle(
+                            color: Colors.grey[600], fontSize: 12)),
                     IconButton(
                         icon: const Icon(Icons.camera_alt,
                             color: AppColors.primaryAccent),
-                        onPressed: () => _scanErrorImage(ImageSource.camera),
+                        onPressed: () =>
+                            _scanErrorImage(ImageSource.camera),
                         tooltip: "Scan from Camera"),
                     IconButton(
                         icon: const Icon(Icons.image,
                             color: AppColors.primaryAccent),
-                        onPressed: () => _scanErrorImage(ImageSource.gallery),
+                        onPressed: () =>
+                            _scanErrorImage(ImageSource.gallery),
                         tooltip: "Upload Screenshot")
                   ])
                 ]))),
@@ -132,10 +145,12 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.auto_fix_high, color: Colors.black),
+                      : const Icon(Icons.auto_fix_high,
+                          color: Colors.black),
                   label: Text(_loading ? " DEBUGGING..." : "FIX ERROR",
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black)),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black)),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryAccent,
                       padding: const EdgeInsets.symmetric(vertical: 16)))),
@@ -165,16 +180,53 @@ class _ErrorFixerScreenState extends State<ErrorFixerScreen> {
                             child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                Icon(Icons.health_and_safety,
-                                    size: 50, color: Colors.grey[800]),
-                                const SizedBox(height: 10),
-                                Text("Paste error or scan screenshot to debug",
-                                    style: TextStyle(color: Colors.grey[700]))
-                              ]))
-                        : SelectableText.rich(
-                            CodeHighlighter.highlight(_solution),
-                            style: GoogleFonts.firaCode(
-                                fontSize: 14, height: 1.5)))))
+                                  Icon(Icons.health_and_safety,
+                                      size: 50, color: Colors.grey[800]),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                      "Paste error or scan screenshot to debug",
+                                      style: TextStyle(
+                                          color: Colors.grey[700]))
+                                ]))
+                        : 
+                        // ✅ CHANGED: Premium Markdown Theme for Error Debugger
+                        MarkdownBody(
+                            data: _solution,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: GoogleFonts.outfit(
+                                  color: Colors.white70,
+                                  fontSize: 15,
+                                  height: 1.5),
+                              // 🔥 Error screen ke hisaab se headings RedAccent me
+                              h1: GoogleFonts.outfit(
+                                  color: Colors.redAccent,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                              h2: GoogleFonts.outfit(
+                                  color: Colors.redAccent,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold),
+                              h3: GoogleFonts.outfit(
+                                  color: Colors.redAccent,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold),
+                              strong: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                              listBullet: const TextStyle(
+                                  color: Colors.redAccent, fontSize: 18),
+                              code: GoogleFonts.firaCode(
+                                  color: Colors.greenAccent, // Code hara dikhega
+                                  backgroundColor: Colors.transparent),
+                              codeblockDecoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: AppColors.borderSubtle),
+                              ),
+                            ),
+                          ))))
       ]),
     );
   }

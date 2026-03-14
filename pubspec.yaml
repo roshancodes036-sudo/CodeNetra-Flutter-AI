@@ -1,4 +1,4 @@
-name: my_app
+name: roshan_io
 description: "CodeNetra-AI: An accessibility Super-App powering vision-to-voice assistance using Google Gemini 3 Flash"
 publish_to: 'none'
 version: 1.0.0+1
@@ -40,18 +40,20 @@ dependencies:
   archive: ^4.0.7
   firebase_ai: ^3.7.0
   flutter_animate: ^4.5.2
+  flutter_markdown: ^0.7.7+1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
   # Icon Generator Package
   flutter_launcher_icons: ^0.13.1
 
 # Icon Configuration (FIXED for Android Only) 👇
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: false             
+  ios: false 
   image_path: "assets/icon.png"
   min_sdk_android: 21
 

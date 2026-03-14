@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // ✅ NEW: Markdown Package
 
 import '../theme/app_colors.dart';
 import '../widgets/custom_widgets.dart';
@@ -71,7 +72,10 @@ class _VisualQAScreenState extends State<VisualQAScreen> {
 
     String prompt =
         "You are a visual assistant. User asks: '$_question'. Answer strictly based on the image. Keep it short. If user asks in Hindi, reply in Hindi.";
+        
     String? res = await _brain.askWithImage(prompt, _image!);
+
+    if (!mounted) return; // ✅ Safety Check Added for Crash Prevention
 
     setState(() {
       _isLoading = false;
@@ -135,12 +139,24 @@ class _VisualQAScreenState extends State<VisualQAScreen> {
                   color: Colors.green.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.green)),
-              child: Text(_answer,
-                  style: GoogleFonts.outfit(
+              child: 
+              // ✅ CHANGED: Normal Text converted to Premium MarkdownBody
+              MarkdownBody(
+                data: _answer,
+                selectable: true,
+                styleSheet: MarkdownStyleSheet(
+                  p: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600),
+                  strong: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center))
+                  listBullet: const TextStyle(
+                      color: Colors.greenAccent, fontSize: 20),
+                ),
+              ))
       ]),
     );
   }
