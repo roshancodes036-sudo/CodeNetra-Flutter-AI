@@ -21,9 +21,6 @@ dependencies:
   # Network & AI
   http: ^1.2.0
   google_generative_ai: ^0.4.7
-  
-  # 🔥 NEW: ML Kit for Live Offline Document Scanning (Very Important)
-  google_mlkit_text_recognition: ^0.13.0
 
   # Firebase
   firebase_core: ^4.4.0
