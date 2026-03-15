@@ -21,10 +21,14 @@ dependencies:
   # Network & AI
   http: ^1.2.0
   google_generative_ai: ^0.4.7
+  
+  # 🔥 NEW: ML Kit for Live Offline Document Scanning (Very Important)
+  google_mlkit_text_recognition: ^0.13.0
 
   # Firebase
   firebase_core: ^4.4.0
   cloud_firestore: ^6.1.2
+  firebase_ai: ^3.7.0
 
   # Voice, Files & Utilities
   flutter_tts: ^4.2.5
@@ -38,7 +42,6 @@ dependencies:
   syncfusion_flutter_pdf: ^32.1.23
   url_launcher: ^6.2.1
   archive: ^4.0.7
-  firebase_ai: ^3.7.0
   flutter_animate: ^4.5.2
   flutter_markdown: ^0.7.7+1
 

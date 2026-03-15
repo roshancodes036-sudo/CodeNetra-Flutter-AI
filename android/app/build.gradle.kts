@@ -35,6 +35,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Explicitly disable R8/ProGuard
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     setProperty("archivesBaseName", "CodeNetra-AI")
